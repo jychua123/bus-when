@@ -1,0 +1,6 @@
+{
+  "name": "SG BusTime",
+  "description": "Real-time Singapore bus arrival tracker with instant bus stop code search and saved favorites.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
