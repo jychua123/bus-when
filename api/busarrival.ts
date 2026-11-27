@@ -1,4 +1,13 @@
-import type { ServerlessRequest, ServerlessResponse } from './health.ts';
+interface ServerlessRequest {
+  method?: string;
+  query: Record<string, string | string[] | undefined>;
+}
+
+interface ServerlessResponse {
+  status: (code: number) => ServerlessResponse;
+  setHeader: (name: string, value: string) => void;
+  json: (body: unknown) => void;
+}
 
 const LTA_BUS_ARRIVAL_V3_ENDPOINT =
   'https://datamall2.mytransport.sg/ltaodataservice/v3/BusArrival';
