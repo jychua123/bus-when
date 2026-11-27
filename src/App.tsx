@@ -10,8 +10,7 @@ import { useFavorites } from './hooks/useFavorites';
 import { busApi } from './services/busApi';
 import { BusStopArrivalsResponse } from './types/bus';
 
-const AUTO_REFRESH_SECONDS = 30;
-const API_URL_STORAGE_KEY = 'sg-bustime:custom-api-url:v1';
+const AUTO_REFRESH_SECONDS = 20;
 
 export default function App() {
   const {
@@ -28,14 +27,7 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<ActiveNavTab>('arrivals');
   const [selectedStopCode, setSelectedStopCode] = useState<string>(() => {
-    return favorites[0]?.code ?? '01012';
-  });
-  const [customApiUrl, setCustomApiUrl] = useState<string>(() => {
-    try {
-      return localStorage.getItem(API_URL_STORAGE_KEY) ?? '';
-    } catch {
-      return '';
-    }
+    return favorites[0]?.code ?? '04121';
   });
 
   const [arrivals, setArrivals] = useState<BusStopArrivalsResponse | null>(null);
@@ -44,38 +36,34 @@ export default function App() {
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [secondsUntilRefresh, setSecondsUntilRefresh] = useState<number>(AUTO_REFRESH_SECONDS);
 
-  const loadArrivals = useCallback(
-    async (stopCode: string) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await busApi.fetchArrivals(stopCode, customApiUrl);
-        setArrivals(res);
-        setNowMs(Date.now());
-        setSecondsUntilRefresh(AUTO_REFRESH_SECONDS);
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Unable to reach bus arrival service.';
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [customApiUrl]
-  );
+  const loadArrivals = useCallback(async (stopCode: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await busApi.fetchArrivals(stopCode);
+      setArrivals(res);
+      setNowMs(Date.now());
+      setSecondsUntilRefresh(AUTO_REFRESH_SECONDS);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to reach bus arrival service.';
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  // Fetch when stop or custom API endpoint changes
   useEffect(() => {
-    loadArrivals(selectedStopCode);
+    void loadArrivals(selectedStopCode);
   }, [selectedStopCode, loadArrivals]);
 
-  // 1-second clock tick for smooth live countdowns and auto-refresh
+  // 1-second clock tick for smooth live countdowns and 20-second auto-refresh
   useEffect(() => {
     const timer = window.setInterval(() => {
       setNowMs(Date.now());
       setSecondsUntilRefresh((prev) => {
         if (prev <= 1) {
-          loadArrivals(selectedStopCode);
+          void loadArrivals(selectedStopCode);
           return AUTO_REFRESH_SECONDS;
         }
         return prev - 1;
@@ -94,21 +82,8 @@ export default function App() {
     [recordRecentStop]
   );
 
-  const handleSaveApiUrl = useCallback((url: string) => {
-    setCustomApiUrl(url);
-    try {
-      if (url) {
-        localStorage.setItem(API_URL_STORAGE_KEY, url);
-      } else {
-        localStorage.removeItem(API_URL_STORAGE_KEY);
-      }
-    } catch {
-      // Ignore storage error
-    }
-  }, []);
-
   const handleRefresh = useCallback(() => {
-    loadArrivals(selectedStopCode);
+    void loadArrivals(selectedStopCode);
   }, [loadArrivals, selectedStopCode]);
 
   return (
@@ -131,13 +106,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {(activeTab === 'arrivals' || activeTab === 'favorites') && (
           <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 items-start">
-            <div
-              className={
-                activeTab === 'favorites'
-                  ? 'block'
-                  : 'hidden lg:block'
-              }
-            >
+            <div className={activeTab === 'favorites' ? 'block' : 'hidden lg:block'}>
               <FavoritesSidebar
                 favorites={favorites}
                 selectedStopCode={selectedStopCode}
@@ -150,13 +119,7 @@ export default function App() {
               />
             </div>
 
-            <div
-              className={
-                activeTab === 'arrivals'
-                  ? 'block'
-                  : 'hidden lg:block'
-              }
-            >
+            <div className={activeTab === 'arrivals' ? 'block' : 'hidden lg:block'}>
               <ArrivalBoard
                 stopCode={selectedStopCode}
                 arrivals={arrivals}
@@ -181,23 +144,20 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'api' && (
-          <ApiConnectionView
-            customApiUrl={customApiUrl}
-            onSaveApiUrl={handleSaveApiUrl}
-          />
-        )}
+        {activeTab === 'api' && <ApiConnectionView />}
       </main>
 
       <footer className="hidden md:block border-t border-slate-200 bg-white mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between text-xs text-slate-500">
-          <span>SG BusTime · Singapore Bus Arrival Interface</span>
+          <span>SG BusTime · LTA DataMall v3 Serverless Integration</span>
           <button
             type="button"
             onClick={() => setActiveTab('api')}
             className="text-slate-600 hover:text-slate-900 underline underline-offset-2 cursor-pointer"
           >
-            {customApiUrl ? 'Live API Connected' : 'Sample Dataset Mode · Configure API'}
+            {arrivals?.source === 'live-api'
+              ? 'Live LTA DataMall v3 Connected'
+              : 'Sample Fallback · View /api Status'}
           </button>
         </div>
       </footer>

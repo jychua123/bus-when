@@ -44,6 +44,16 @@ export interface BusStopArrivalsResponse {
   services: BusServiceArrival[];
   updatedAtIso: string;
   source: 'sample-dataset' | 'live-api';
+  fallbackReason?: 'missing-api-key';
+}
+
+export interface ServerHealthStatus {
+  status: string;
+  service: string;
+  ltaApiVersion: string;
+  ltaAccountKeyConfigured: boolean;
+  refreshIntervalSeconds: number;
+  timestamp: string;
 }
 
 export interface FavoriteStop {

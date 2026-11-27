@@ -201,6 +201,12 @@ export function ArrivalBoard({
               <span>{stop.district}</span>
               <span aria-hidden="true">·</span>
               <span>{arrivals ? `${arrivals.services.length} services` : `${stop.services.length} services`}</span>
+              {arrivals?.source === 'live-api' && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="font-medium text-[#008751]">LTA DataMall v3</span>
+                </>
+              )}
               <span aria-hidden="true">·</span>
               <span className="font-mono tabular-nums">
                 Updated {updatedTimeText} (Next refresh in {secondsUntilRefresh}s)
@@ -246,10 +252,16 @@ export function ArrivalBoard({
           </div>
         </div>
 
-        {isCustomPreviewStop && (
+        {arrivals?.fallbackReason === 'missing-api-key' ? (
           <div className="mt-4 px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
-            Stop code <span className="font-mono font-semibold text-slate-900">{stop.code}</span> is not in the built-in 25-stop sample directory, so a preview schedule is shown. Connect your LTA DataMall endpoint in <span className="font-medium text-slate-900">API Schema</span> for all 5,000+ Singapore bus stops.
+            Serverless endpoint <span className="font-mono font-semibold text-slate-900">/api/busarrival</span> is active and awaiting <span className="font-mono font-semibold text-slate-900">LTA_ACCOUNT_KEY</span> in your server environment. Showing sample schedule for now.
           </div>
+        ) : (
+          isCustomPreviewStop && (
+            <div className="mt-4 px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600">
+              Stop code <span className="font-mono font-semibold text-slate-900">{stop.code}</span> is not in the built-in sample directory, so a preview schedule is shown.
+            </div>
+          )
         )}
       </div>
 
